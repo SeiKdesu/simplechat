@@ -5,6 +5,44 @@ import boto3
 import re  # 正規表現モジュールをインポート
 from botocore.exceptions import ClientError
 
+import json
+import urllib.request
+
+API_URL = "http://0.0.0.0:8501"  # ←自分のAPIに書き換える
+
+def handler(event, context):
+    try:
+        body = json.loads(event.get("body", "{}"))
+        message = body.get("message", "")
+
+        data = json.dumps({
+            "message": message
+        }).encode("utf-8")
+
+        req = urllib.request.Request(
+            API_URL,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+
+        with urllib.request.urlopen(req) as res:
+            res_body = res.read()
+            response_json = json.loads(res_body)
+            answer = response_json.get("answer", "")
+
+        return {
+            "statusCode": 200,
+            "body": json.dumps({"answer": answer}),
+            "headers": {"Content-Type": "application/json"}
+        }
+
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": str(e)}),
+            "headers": {"Content-Type": "application/json"}
+        }
 
 # Lambda コンテキストからリージョンを抽出する関数
 def extract_region_from_arn(arn):
